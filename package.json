@@ -1,0 +1,29 @@
+{
+  "name": "@saltcorn/history-control",
+  "version": "0.1.0",
+  "description": "Allow users to interact with row history",
+  "main": "index.js",
+  "dependencies": {
+    "@saltcorn/data": "^0.8.7",
+    "@saltcorn/markup": "^0.8.7"
+  },
+  "author": "Tom Nielsen",
+  "license": "MIT",
+  "repository": "github:saltcorn/history-control",
+  "eslintConfig": {
+    "extends": "eslint:recommended",
+    "parserOptions": {
+      "ecmaVersion": 2020
+    },
+    "env": {
+      "node": true,
+      "es6": true
+    },
+    "rules": {
+      "no-unused-vars": "off",
+      "no-case-declarations": "off",
+      "no-empty": "warn",
+      "no-fallthrough": "warn"
+    }
+  }
+}
