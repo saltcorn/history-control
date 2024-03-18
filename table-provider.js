@@ -59,7 +59,7 @@ const runQuery = async (cfg, where, opts) => {
   _version = (select max(ih._version) from ${schemaPrefix}"${db.sqlsanitize(
     table.name
   )}__history" ih where ih.id = h.id) as _is_latest,
-  exists(select id from ${schemaPrefix}"${db.sqlsanitize(
+  not exists(select id from ${schemaPrefix}"${db.sqlsanitize(
     table.name
   )}" t where t.id = h.id) as _deleted, 
   * from ${schemaPrefix}"${db.sqlsanitize(table.name)}__history" h`;
