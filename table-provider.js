@@ -76,7 +76,6 @@ const runQuery = async (cfg, where, opts) => {
     }
   }
 
-  console.log({ where, wheres, phValues });
   const sql = `select 
   _version || '_'|| id as _version_id, 
   _version = (select max(ih._version) from ${schemaPrefix}"${db.sqlsanitize(
@@ -88,8 +87,6 @@ const runQuery = async (cfg, where, opts) => {
   * from ${schemaPrefix}"${db.sqlsanitize(table.name)}__history" h ${
     wheres.length ? ` where ${wheres.join(" AND")}` : ""
   }`;
-
-  console.log(sql, phValues);
 
   return await db.query(sql, phValues);
 };
