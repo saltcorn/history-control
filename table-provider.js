@@ -68,8 +68,10 @@ const runQuery = async (cfg, where, opts) => {
     }
     const f = table.getField(k);
     if (f) {
-      wheres.push(`"${k}" = $${phIndex}`);
-      phValues.push(where[k]);
+      wheres.push(
+        where[k]?.ilike ? `"${k}" ILIKE $${phIndex}` : `"${k}" = $${phIndex}`
+      );
+      phValues.push(where[k]?.ilike ? where[k]?.ilike : where[k]);
       phIndex += 1;
     }
   }
