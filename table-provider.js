@@ -41,8 +41,10 @@ const runQuery = async (cfg, where, opts) => {
   const phValues = [];
 
   for (const k of Object.keys(where)) {
-    if (k === "_latest") {
-      wheres.push(`_is_latest = `);
+    if (k === "_is_latest" && where[k]) {
+      wheres.push(
+        `h._version = (select max(ih._version) from "public"."Teacher__history" ih where ih.id = h.id)`
+      );
       continue;
     }
     const f = table.getField(k);
@@ -54,6 +56,7 @@ const runQuery = async (cfg, where, opts) => {
   }
   const schemaPrefix = db.getTenantSchemaPrefix();
 
+  console.log({ where, wheres, phValues });
   const sql = `select 
   _version || '_'|| id as _version_id, 
   _version = (select max(ih._version) from ${schemaPrefix}"${db.sqlsanitize(
@@ -62,7 +65,11 @@ const runQuery = async (cfg, where, opts) => {
   not exists(select id from ${schemaPrefix}"${db.sqlsanitize(
     table.name
   )}" t where t.id = h.id) as _deleted, 
-  * from ${schemaPrefix}"${db.sqlsanitize(table.name)}__history" h`;
+  * from ${schemaPrefix}"${db.sqlsanitize(table.name)}__history" h ${
+    wheres.length ? ` where ${wheres.join(" AND")}` : ""
+  }`;
+
+  console.log(sql, phValues);
 
   return await db.query(sql, phValues);
 };
@@ -85,13 +92,13 @@ module.exports = {
         { name: "_version", label: "Version", type: "Integer" },
         { name: "_is_latest", label: "Is latest", type: "Bool" },
         { name: "_deleted", label: "Deleted", type: "Bool" },
-
-        //_version
-        //_time
-        //_restore_of_version
-        //_userid
-        //_deleted
-        //
+        { name: "_time", label: "Time", type: "Date" },
+        { name: "_userid", label: "User ID", type: "Integer" },
+        {
+          name: "_restore_of_version",
+          label: "Restore of version",
+          type: "Integer",
+        },
       ];
     },
     get_table: (cfg) => {
