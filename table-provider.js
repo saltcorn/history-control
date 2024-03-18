@@ -77,6 +77,9 @@ module.exports = {
         { name: "_version_id", type: "String", primary_key: true },
         ...table.fields.map((f) => {
           f.primary_key = false;
+          f.validator = undefined;
+          if (f.is_fkey) f.type = "Integer";
+          else f.type = f.type?.name || f.type;
           return f;
         }),
         { name: "_version", label: "Version", type: "Integer" },
