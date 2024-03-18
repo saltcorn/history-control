@@ -40,11 +40,30 @@ const runQuery = async (cfg, where, opts) => {
   let phIndex = 1;
   const phValues = [];
 
+  const schemaPrefix = db.getTenantSchemaPrefix();
+
   for (const k of Object.keys(where)) {
     if (k === "_is_latest" && where[k]) {
       wheres.push(
-        `h._version = (select max(ih._version) from "public"."Teacher__history" ih where ih.id = h.id)`
+        `h._version = (select max(ih._version) from ${schemaPrefix}"${db.sqlsanitize(
+          table.name
+        )}__history" ih where ih.id = h.id)`
       );
+      continue;
+    }
+    if (k === "_deleted") {
+      if (where[k])
+        wheres.push(
+          `not exists(select id from ${schemaPrefix}"${db.sqlsanitize(
+            table.name
+          )}" t where t.id = h.id)`
+        );
+      else
+        wheres.push(
+          `exists(select id from ${schemaPrefix}"${db.sqlsanitize(
+            table.name
+          )}" t where t.id = h.id)`
+        );
       continue;
     }
     const f = table.getField(k);
@@ -54,7 +73,6 @@ const runQuery = async (cfg, where, opts) => {
       phIndex += 1;
     }
   }
-  const schemaPrefix = db.getTenantSchemaPrefix();
 
   console.log({ where, wheres, phValues });
   const sql = `select 
