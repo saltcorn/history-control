@@ -19,25 +19,39 @@ const actions = {
       return { reload_page: true };
     },
   },
-  undelete_from_history: {
+  restore_from_history: {
     requireRow: true,
     run: async ({ table, row, user }) => {
       if (table.provider_name !== "History for database table")
         return {
           error:
-            "Only use this action on tbales provided by History for database table",
+            "Only use this action on tables provided by History for database table",
         };
       const real_table = Table.findOne({ name: table.provider_cfg?.table });
       if (!real_table) return { error: "Table not found" };
       if (!real_table.versioned)
         return { error: "History not enabled for table" };
-      if (!row._deleted) return { error: "Row is not deleted" };
-
-      const insRow = {};
-      for (const field of real_table.fields) {
-        insRow[field.name] = row[field.name];
+      if (row._deleted) {
+        const insRow = {};
+        for (const field of real_table.fields) {
+          insRow[field.name] = row[field.name];
+        }
+        await real_table.insertRow(insRow);
+      } else {
+        const updRow = {};
+        for (const field of real_table.fields) {
+          if (!field.primary_key) updRow[field.name] = row[field.name];
+        }
+        await real_table.updateRow(
+          updRow,
+          row[real_table.pk_name],
+          user,
+          false,
+          undefined,
+          row._version
+        );
       }
-      await real_table.insertRow(insRow);
+
       return { reload_page: true };
     },
   },
