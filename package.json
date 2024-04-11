@@ -6,7 +6,8 @@
   "dependencies": {
     "@saltcorn/data": "^0.8.7",
     "@saltcorn/markup": "^0.8.7",
-    "htmldiff-js": "1.0.5"
+    "htmldiff-js": "1.0.5",
+    "moment": "^2.29.4"
   },
   "author": "Tom Nielsen",
   "license": "MIT",

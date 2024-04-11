@@ -20,6 +20,7 @@ const {
   option,
 } = require("@saltcorn/markup/tags");
 const { radio_group, checkbox_group } = require("@saltcorn/markup/helpers");
+const moment = require("moment");
 
 const get_state_fields = () => [
   {
@@ -51,6 +52,12 @@ const configuration_workflow = (req) =>
                   options: field_options,
                 },
               },
+              {
+                name: "date_format",
+                label: "Date format",
+                type: "String",
+                sublabel: "moment.js format specifier",
+              },
             ],
           });
         },
@@ -58,7 +65,13 @@ const configuration_workflow = (req) =>
     ],
   });
 
-const run = async (table_id, viewname, { diff_field }, state, extraArgs) => {
+const run = async (
+  table_id,
+  viewname,
+  { diff_field, date_format },
+  state,
+  extraArgs
+) => {
   const table = await Table.findOne({ id: table_id });
 
   const cmpMode = state.diffcmp || "Previous";
@@ -71,33 +84,34 @@ const run = async (table_id, viewname, { diff_field }, state, extraArgs) => {
     onChange: `change_cmp_sel(event)`,
   });
   const id = state[table.pk_name];
+  if (!id) return `Need id`;
   let hist = await table.get_history(id);
   if (!hist || !hist.length) return "No versions recorded";
   hist = hist.reverse();
   const chosen_version = state.version || hist[0]?._version;
 
+  const userIds = new Set(hist.map((h) => h._userid));
+  const users = await User.find({ id: { in: [...userIds] } });
+  const emails = {};
+  users.forEach((u) => (emails[u.id] = u.email));
   const row = hist.find((h) => chosen_version == h._version);
   const verSelect = select(
     {
       onChange: "change_diff_version(event)",
-      class: "form-select form-control",
+      class: "form-select form-control mb-2",
     },
     hist.map((h) =>
       option(
         { value: h._version, selected: chosen_version == h._version },
-        h._time.toString()
+        date_format ? moment(h._time).format(date_format) : h._time.toString(),
+        " - ",
+        emails[h._userid]
       )
     )
   );
 
-  //date and who
-
-  //select version
-
   //restore to this version
 
-  //show that version
-  //show diff
   let diff_html;
   if (cmpMode === "No comparison") diff_html = row[diff_field];
   else {
