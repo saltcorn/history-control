@@ -4,7 +4,7 @@ const Form = require("@saltcorn/data/models/form");
 const User = require("@saltcorn/data/models/user");
 const View = require("@saltcorn/data/models/view");
 const Workflow = require("@saltcorn/data/models/workflow");
-
+const HtmlDiff = require("htmldiff-js");
 const {
   text,
   div,
@@ -61,20 +61,22 @@ const configuration_workflow = (req) =>
 const run = async (table_id, viewname, { diff_field }, state, extraArgs) => {
   const table = await Table.findOne({ id: table_id });
 
+  const cmpMode = state.diffcmp || "Previous";
   //compare to: Current, Previous, No comparison
   const cmpSel = radio_group({
-    options: ["Current", "Previous", "No comparison"],
+    options: ["Previous", "Latest", "No comparison"],
     name: "diff_cmp_sel",
-    value: state.diffcmp || "Current",
+    value: cmpMode,
     inline: true,
     onChange: `change_cmp_sel(event)`,
   });
   const id = state[table.pk_name];
-  const hist = await table.get_history(id);
+  let hist = await table.get_history(id);
   if (!hist || !hist.length) return "No versions recorded";
+  hist = hist.reverse();
   const chosen_version = state.version || hist[0]?._version;
+
   const row = hist.find((h) => chosen_version == h._version);
-  console.log(hist);
   const verSelect = select(
     {
       onChange: "change_diff_version(event)",
@@ -95,11 +97,28 @@ const run = async (table_id, viewname, { diff_field }, state, extraArgs) => {
   //restore to this version
 
   //show that version
+  //show diff
+  let diff_html;
+  if (cmpMode === "No comparison") diff_html = row[diff_field];
+  else {
+    const cmpTo =
+      cmpMode === "Latest"
+        ? hist[0]
+        : hist.find((h) => chosen_version - 1 == h._version);
+    if (!cmpTo || cmpTo._version == row._version) diff_html = row[diff_field];
+    else {
+      //const field = table.fields.find((f) => f.name === diff_field);
+      const oldH = cmpMode === "Latest" ? row[diff_field] : cmpTo[diff_field];
+      const newH = cmpMode === "Latest" ? cmpTo[diff_field] : row[diff_field];
+      diff_html = HtmlDiff.default.execute(oldH, newH);
+      console.log({ oldH, newH, diff_html });
+    }
+  }
 
   return div(
     div({ class: "d-flex" }, p({ class: "me-2" }, "Compare to:"), cmpSel),
     verSelect,
-    row[diff_field],
+    diff_html,
     script(
       `function change_cmp_sel(e){set_state_field("diffcmp", e.target.value)}
       function change_diff_version(e){set_state_field("version", e.target.value)}`
