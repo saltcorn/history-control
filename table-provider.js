@@ -8,6 +8,7 @@ const Table = require("@saltcorn/data/models/table");
 const { getState } = require("@saltcorn/data/db/state");
 const { mkTable } = require("@saltcorn/markup");
 const { pre, code } = require("@saltcorn/markup/tags");
+const { mkWhere } = require("@saltcorn/db-common/internal");
 
 const configuration_workflow = (req) =>
   new Workflow({
@@ -34,47 +35,33 @@ const configuration_workflow = (req) =>
       },
     ],
   });
-const runQuery = async (cfg, where, opts) => {
+const runQuery = async (cfg, whereFull, opts) => {
   const table = Table.findOne({ name: cfg.table });
-  const wheres = [];
-  let phIndex = 1;
-  const phValues = [];
 
   const schemaPrefix = db.getTenantSchemaPrefix();
+  const { _is_latest, _deleted, ...whereRest } = whereFull;
 
-  for (const k of Object.keys(where)) {
-    if (k === "_is_latest" && where[k]) {
-      wheres.push(
-        `h._version = (select max(ih._version) from ${schemaPrefix}"${db.sqlsanitize(
-          table.name
-        )}__history" ih where ih.id = h.id)`
-      );
-      continue;
-    }
-    if (k === "_deleted") {
-      if (where[k])
-        wheres.push(
-          `not exists(select id from ${schemaPrefix}"${db.sqlsanitize(
-            table.name
-          )}" t where t.id = h.id)`
-        );
-      else
-        wheres.push(
-          `exists(select id from ${schemaPrefix}"${db.sqlsanitize(
-            table.name
-          )}" t where t.id = h.id)`
-        );
-      continue;
-    }
-    const f = table.getField(k);
-    if (f) {
-      wheres.push(
-        where[k]?.ilike ? `"${k}" ILIKE $${phIndex}` : `"${k}" = $${phIndex}`
-      );
-      phValues.push(where[k]?.ilike ? where[k]?.ilike : where[k]);
-      phIndex += 1;
-    }
+  let { where, values } = mkWhere(whereRest || {});
+
+  if (_is_latest) {
+    where = `${
+      where ? where + " and" : "where"
+    } h._version = (select max(ih._version) from ${schemaPrefix}"${db.sqlsanitize(
+      table.name
+    )}__history" ih where ih.id = h.id)`;
   }
+  if (_deleted === false || _deleted === "false")
+    where = `${
+      where ? where + " and " : "where"
+    } exists(select id from ${schemaPrefix}"${db.sqlsanitize(
+      table.name
+    )}" t where t.id = h.id)`;
+  else if (_deleted)
+    where = `${
+      where ? where + " and " : "where"
+    } not exists(select id from ${schemaPrefix}"${db.sqlsanitize(
+      table.name
+    )}" t where t.id = h.id)`;
 
   const sql = `select 
   _version || '_'|| id as _version_id, 
@@ -85,10 +72,9 @@ const runQuery = async (cfg, where, opts) => {
     table.name
   )}" t where t.id = h.id) as _deleted, 
   * from ${schemaPrefix}"${db.sqlsanitize(table.name)}__history" h ${
-    wheres.length ? ` where ${wheres.join(" AND")}` : ""
+    where.length ? ` ${where}` : ""
   }`;
-
-  return await db.query(sql, phValues);
+  return await db.query(sql, values);
 };
 module.exports = {
   "History for database table": {
