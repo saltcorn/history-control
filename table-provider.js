@@ -36,6 +36,11 @@ const configuration_workflow = (req) =>
     ],
   });
 const runQuery = async (cfg, whereFull, opts) => {
+   if (whereFull?._fts?.fields) {
+    whereFull._fts.fields = whereFull?._fts?.fields.filter(
+      (f) => f.name !== "_version_id" && f.name !== "_deleted"
+    );
+  }
   const table = Table.findOne({ name: cfg.table });
 
   const schemaPrefix = db.getTenantSchemaPrefix();
