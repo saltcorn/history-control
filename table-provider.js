@@ -1,4 +1,3 @@
-const db = require("@saltcorn/data/db");
 const { eval_expression } = require("@saltcorn/data/models/expression");
 const Workflow = require("@saltcorn/data/models/workflow");
 const Form = require("@saltcorn/data/models/form");
@@ -8,8 +7,7 @@ const Table = require("@saltcorn/data/models/table");
 const { getState } = require("@saltcorn/data/db/state");
 const { mkTable } = require("@saltcorn/markup");
 const { pre, code } = require("@saltcorn/markup/tags");
-const { mkWhere } = require("@saltcorn/db-common/internal");
-
+const { runQuery } = require("./common");
 const configuration_workflow = (req) =>
   new Workflow({
     steps: [
@@ -35,52 +33,7 @@ const configuration_workflow = (req) =>
       },
     ],
   });
-const runQuery = async (cfg, whereFull, opts) => {
-   if (whereFull?._fts?.fields) {
-    whereFull._fts.fields = whereFull?._fts?.fields.filter(
-      (f) => f.name !== "_version_id" && f.name !== "_deleted"
-    );
-  }
-  const table = Table.findOne({ name: cfg.table });
 
-  const schemaPrefix = db.getTenantSchemaPrefix();
-  const { _is_latest, _deleted, ...whereRest } = whereFull;
-
-  let { where, values } = mkWhere(whereRest || {});
-
-  if (_is_latest) {
-    where = `${
-      where ? where + " and" : "where"
-    } h._version = (select max(ih._version) from ${schemaPrefix}"${db.sqlsanitize(
-      table.name
-    )}__history" ih where ih.id = h.id)`;
-  }
-  if (_deleted === false || _deleted === "false")
-    where = `${
-      where ? where + " and " : "where"
-    } exists(select id from ${schemaPrefix}"${db.sqlsanitize(
-      table.name
-    )}" t where t.id = h.id)`;
-  else if (_deleted)
-    where = `${
-      where ? where + " and " : "where"
-    } not exists(select id from ${schemaPrefix}"${db.sqlsanitize(
-      table.name
-    )}" t where t.id = h.id)`;
-
-  const sql = `select 
-  _version || '_'|| id as _version_id, 
-  _version = (select max(ih._version) from ${schemaPrefix}"${db.sqlsanitize(
-    table.name
-  )}__history" ih where ih.id = h.id) as _is_latest,
-  not exists(select id from ${schemaPrefix}"${db.sqlsanitize(
-    table.name
-  )}" t where t.id = h.id) as _deleted, 
-  * from ${schemaPrefix}"${db.sqlsanitize(table.name)}__history" h ${
-    where.length ? ` ${where}` : ""
-  }`;
-  return await db.query(sql, values);
-};
 module.exports = {
   "History for database table": {
     configuration_workflow,
@@ -112,7 +65,9 @@ module.exports = {
     get_table: (cfg) => {
       return {
         getRows: async (where, opts) => {
-          const qres = await runQuery(cfg, where, opts);
+          const table = Table.findOne({ name: cfg.table });
+
+          const qres = await runQuery(table, where);
           return qres.rows;
         },
       };

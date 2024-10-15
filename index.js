@@ -1,5 +1,7 @@
 const { features } = require("@saltcorn/data/db/state");
 const Table = require("@saltcorn/data/models/table");
+const Field = require("@saltcorn/data/models/field");
+const { runQuery } = require("./common");
 
 // user subscribe action
 const actions = {
@@ -37,7 +39,7 @@ const actions = {
           insRow[field.name] = row[field.name];
         }
         await real_table.insertRow(insRow);
-        await undelete_cascaded(real_table, insRow)
+        await undelete_cascaded(real_table, insRow);
       } else {
         const updRow = {};
         for (const field of real_table.fields) {
@@ -58,11 +60,38 @@ const actions = {
   },
 };
 
-const undelete_cascaded = async(table, row) => {
+const undelete_cascaded = async (table, row) => {
   //inbound keys with on cascade delete
+  const fields = await Field.find(
+    {
+      reftable_name: table.name,
+    },
+    { cached: true }
+  );
+  for (const field of fields) {
+    const ctable = field.table || Table.findOne({ id: field.table_id });
+    if (
+      !ctable.versioned ||
+      !(
+        field.attributes.on_delete_cascade ||
+        field.attributes?.on_delete === "Cascade"
+      )
+    )
+      continue;
 
-}
-
+    const crows = await runQuery(ctable, { [field.name]: row.id });
+    for (const crow of crows.rows) {
+      if (crow._deleted && crow._is_latest) {
+        const insRow = {};
+        for (const cfield of ctable.fields) {
+          insRow[cfield.name] = crow[cfield.name];
+        }
+        await ctable.insertRow(insRow);
+        await undelete_cascaded(ctable, insRow);
+      }
+    }
+  }
+};
 module.exports = {
   sc_plugin_api_version: 1,
   actions: features?.table_undo ? actions : undefined,
