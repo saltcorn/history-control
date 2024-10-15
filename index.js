@@ -37,6 +37,7 @@ const actions = {
           insRow[field.name] = row[field.name];
         }
         await real_table.insertRow(insRow);
+        await undelete_cascaded(real_table, insRow)
       } else {
         const updRow = {};
         for (const field of real_table.fields) {
@@ -56,6 +57,11 @@ const actions = {
     },
   },
 };
+
+const undelete_cascaded = async(table, row) => {
+  //inbound keys with on cascade delete
+
+}
 
 module.exports = {
   sc_plugin_api_version: 1,
