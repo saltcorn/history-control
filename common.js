@@ -13,7 +13,7 @@ const runQuery = async (table, whereFull) => {
   const { _is_latest, _deleted, ...whereRest } = whereFull;
 
   let { where, values } = mkWhere(whereRest || {});
-
+  where = where.replaceAll('"_version_id"', "(_version || '_' || id)");
   if (_is_latest) {
     where = `${
       where ? where + " and" : "where"
