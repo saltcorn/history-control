@@ -9,7 +9,7 @@ const actions = {
     requireRow: true,
     run: async ({ table, row, user }) => {
       if (!table.versioned) return { error: "History not enabled for table" };
-      await table.undo_row_changes(row.id, user);
+      await table.undo_row_changes(row[table.pk_name], user);
       return { reload_page: true };
     },
   },
@@ -17,7 +17,7 @@ const actions = {
     requireRow: true,
     run: async ({ table, row, user }) => {
       if (!table.versioned) return { error: "History not enabled for table" };
-      await table.redo_row_changes(row.id, user);
+      await table.redo_row_changes(row[table.pk_name], user);
       return { reload_page: true };
     },
   },
@@ -79,7 +79,7 @@ const undelete_cascaded = async (table, row) => {
     )
       continue;
 
-    const crows = await runQuery(ctable, { [field.name]: row.id });
+    const crows = await runQuery(ctable, { [field.name]: row[table.pk_name] });
     for (const crow of crows.rows) {
       if (crow._deleted && crow._is_latest) {
         const insRow = {};
