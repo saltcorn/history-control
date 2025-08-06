@@ -7,7 +7,7 @@ const Table = require("@saltcorn/data/models/table");
 const { getState } = require("@saltcorn/data/db/state");
 const { mkTable } = require("@saltcorn/markup");
 const { pre, code } = require("@saltcorn/markup/tags");
-const { runQuery, countRows, deleteRows } = require("./common");
+const { runQuery, countRows, deleteRows, updateRow } = require("./common");
 const configuration_workflow = (req) =>
   new Workflow({
     steps: [
@@ -42,7 +42,12 @@ module.exports = {
 
       const table = Table.findOne({ name: cfg.table });
       return [
-        { name: "_version_id", type: "String", primary_key: true },
+        {
+          name: "_version_id",
+          type: "String",
+          primary_key: true,
+          is_unique: true,
+        },
         ...table.fields.map((f) => {
           f.primary_key = false;
           f.validator = undefined;
@@ -66,6 +71,9 @@ module.exports = {
       return {
         deleteRows: async (where, user) => {
           return await deleteRows(cfg.table, where, user);
+        },
+        updateRow: async (update, version_id, user) => {
+          return await updateRow(cfg.table, update, version_id);
         },
         countRows: async (where, opts) => {
           return await countRows(cfg.table, where);

@@ -54,6 +54,28 @@ const runQuery = async (table, whereFull) => {
   return await db.query(sql, values);
 };
 
+const updateRow = async (table_name, update_in, version_id) => {
+  const { _version_id, _is_latest, _deleted, ...update } = update_in;
+  const schemaPrefix = db.getTenantSchemaPrefix();
+  const sqlParts = [],
+    values = [];
+  const nkeys = Object.keys(update).length;
+  const [version, id] = version_id.split("_");
+  Object.entries(update).forEach(([k, v], ix) => {
+    sqlParts.push(`"${db.sqlsanitize(k)}"=$${ix + 1}`);
+    values.push(v);
+  });
+  values.push(version);
+  values.push(id);
+  const sql = `update ${schemaPrefix}"${db.sqlsanitize(
+    table_name
+  )}__history" SET ${sqlParts.join()} where _version = $${
+    nkeys + 1
+  } and id = $${nkeys + 2}`;
+  await db.query(sql, values);
+  return {};
+};
+
 const countRows = async (table_name, whereFull) => {
   const schemaPrefix = db.getTenantSchemaPrefix();
   const { where, values } = get_where_vals(table_name, whereFull);
@@ -74,4 +96,4 @@ const deleteRows = async (table_name, whereFull) => {
   await db.query(sql, values);
 };
 
-module.exports = { runQuery, countRows, deleteRows };
+module.exports = { runQuery, countRows, deleteRows, updateRow };
