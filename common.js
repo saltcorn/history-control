@@ -76,6 +76,32 @@ const updateRow = async (table_name, update_in, version_id) => {
   return {};
 };
 
+const insertRow = async (table, rec_in) => {
+  const { _is_latest, _deleted, _version_id, ...rec } = rec_in;
+  const kvs = Object.entries(rec);
+  const fnameList = kvs.map(([k, v]) => `"${db.sqlsanitize(k)}"`).join();
+  var valPosList = [];
+  var valList = [];
+  const schemaPrefix = db.getTenantSchemaPrefix();
+
+  kvs.forEach(([k, v]) => {
+    valList.push(v);
+    valPosList.push(`$${valList.length}`);
+  });
+  const sql =
+    valPosList.length > 0
+      ? `insert into ${schemaPrefix}"${db.sqlsanitize(
+          table.name
+        )}__history"(${fnameList}) values(${valPosList.join()}) returning "${
+          table.pk_name || "id"
+        }"`
+      : `insert into ${schemaPrefix}"${db.sqlsanitize(
+          table.name
+        )}" DEFAULT VALUES returning "${table.pk_name || "id"}"`;
+  const { rows } = await db.query(sql, valList);
+  return rows[0][table.pk_name || "id"];
+};
+
 const countRows = async (table_name, whereFull) => {
   const schemaPrefix = db.getTenantSchemaPrefix();
   const { where, values } = get_where_vals(table_name, whereFull);
@@ -96,4 +122,4 @@ const deleteRows = async (table_name, whereFull) => {
   await db.query(sql, values);
 };
 
-module.exports = { runQuery, countRows, deleteRows, updateRow };
+module.exports = { runQuery, countRows, deleteRows, updateRow, insertRow };
