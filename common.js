@@ -37,7 +37,7 @@ const get_where_vals = (table_name, whereFull) => {
   return { where, values };
 };
 
-const runQuery = async (table, whereFull) => {
+const runQuery = async (table, whereFull, opts) => {
   const schemaPrefix = db.getTenantSchemaPrefix();
   const { where, values } = get_where_vals(table.name, whereFull);
   const sql = `select 
@@ -50,6 +50,8 @@ const runQuery = async (table, whereFull) => {
   )}" t where t.id = h.id) as _deleted, 
  * from ${schemaPrefix}"${db.sqlsanitize(table.name)}__history" h ${
     where.length ? ` ${where}` : ""
+  }${opts.limit ? ` limit ${+opts.limit}` : ""}${
+    opts.offset ? ` offset ${+opts.offset}` : ""
   }`;
   return await db.query(sql, values);
 };

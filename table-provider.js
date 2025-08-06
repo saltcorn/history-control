@@ -76,6 +76,7 @@ module.exports = {
     },
     get_table: (cfg) => {
       return {
+        disableFiltering: true,
         deleteRows: async (where, user) => {
           return await deleteRows(cfg.table, where, user);
         },
@@ -94,8 +95,7 @@ module.exports = {
         },
         getRows: async (where, opts) => {
           const table = Table.findOne({ name: cfg.table });
-
-          const qres = await runQuery(table, where);
+          const qres = await runQuery(table, where, opts);
           return qres.rows;
         },
       };
