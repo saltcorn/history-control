@@ -50,6 +50,12 @@ const runQuery = async (table, whereFull, opts) => {
   )}" t where t.id = h.id) as _deleted, 
  * from ${schemaPrefix}"${db.sqlsanitize(table.name)}__history" h ${
     where.length ? ` ${where}` : ""
+  }${
+    opts.orderBy && opts.orderBy !== "_version_id"
+      ? ` order by "${db.sqlsanitize(opts.orderBy)}"${
+          opts.orderDesc ? " DESC" : ""
+        }`
+      : ""
   }${opts.limit ? ` limit ${+opts.limit}` : ""}${
     opts.offset ? ` offset ${+opts.offset}` : ""
   }`;
