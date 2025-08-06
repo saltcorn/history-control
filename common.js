@@ -65,4 +65,13 @@ const countRows = async (table_name, whereFull) => {
   return +rows?.[0]?.count;
 };
 
-module.exports = { runQuery, countRows };
+const deleteRows = async (table_name, whereFull) => {
+  const schemaPrefix = db.getTenantSchemaPrefix();
+  const { where, values } = get_where_vals(table_name, whereFull);
+  const sql = `delete from ${schemaPrefix}"${db.sqlsanitize(
+    table_name
+  )}__history" h ${where.length ? ` ${where}` : ""}`;
+  await db.query(sql, values);
+};
+
+module.exports = { runQuery, countRows, deleteRows };
