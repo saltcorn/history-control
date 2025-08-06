@@ -122,4 +122,37 @@ const deleteRows = async (table_name, whereFull) => {
   await db.query(sql, values);
 };
 
-module.exports = { runQuery, countRows, deleteRows, updateRow, insertRow };
+const distinctValues = async (table_name, fieldnm, whereObj) => {
+  const schemaPrefix = db.getTenantSchemaPrefix();
+
+  if (whereObj) {
+    const { where, values } = mkWhere(whereObj, db.isSQLite);
+    const res = await db.query(
+      `select distinct "${db.sqlsanitize(
+        fieldnm
+      )}" from ${schemaPrefix}"${db.sqlsanitize(
+        table_name
+      )}__history" ${where} order by "${db.sqlsanitize(fieldnm)}"`,
+      values
+    );
+    return res.rows.map((r) => r[fieldnm]);
+  } else {
+    const res = await db.query(
+      `select distinct "${db.sqlsanitize(
+        fieldnm
+      )}" from ${schemaPrefix}"${db.sqlsanitize(
+        table_name
+      )}__history" order by "${db.sqlsanitize(fieldnm)}"`
+    );
+    return res.rows.map((r) => r[fieldnm]);
+  }
+};
+
+module.exports = {
+  runQuery,
+  countRows,
+  deleteRows,
+  updateRow,
+  insertRow,
+  distinctValues,
+};

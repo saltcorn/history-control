@@ -13,6 +13,7 @@ const {
   deleteRows,
   updateRow,
   insertRow,
+  distinctValues,
 } = require("./common");
 const configuration_workflow = (req) =>
   new Workflow({
@@ -86,7 +87,10 @@ module.exports = {
           return await insertRow(table, rec);
         },
         countRows: async (where, opts) => {
-          return await countRows(cfg.table, where);
+          return await countRows(cfg.table, where || {});
+        },
+        distinctValues: async (fldNm, opts) => {
+          return await distinctValues(cfg.table, fldNm, opts);
         },
         getRows: async (where, opts) => {
           const table = Table.findOne({ name: cfg.table });
