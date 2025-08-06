@@ -7,7 +7,7 @@ const Table = require("@saltcorn/data/models/table");
 const { getState } = require("@saltcorn/data/db/state");
 const { mkTable } = require("@saltcorn/markup");
 const { pre, code } = require("@saltcorn/markup/tags");
-const { runQuery } = require("./common");
+const { runQuery, countRows } = require("./common");
 const configuration_workflow = (req) =>
   new Workflow({
     steps: [
@@ -64,6 +64,9 @@ module.exports = {
     },
     get_table: (cfg) => {
       return {
+        countRows: async (where, opts) => {
+          return await countRows(cfg.table, where);
+        },
         getRows: async (where, opts) => {
           const table = Table.findOne({ name: cfg.table });
 
