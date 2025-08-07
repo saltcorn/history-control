@@ -125,7 +125,7 @@ const run = async (
       const oldH = cmpMode === "Latest" ? row[diff_field] : cmpTo[diff_field];
       const newH = cmpMode === "Latest" ? cmpTo[diff_field] : row[diff_field];
       diff_html = HtmlDiff.default.execute(oldH, newH);
-      console.log({ oldH, newH, diff_html });
+      //console.log({ oldH, newH, diff_html });
     }
   }
 

@@ -117,7 +117,7 @@ const countRows = async (table_name, whereFull) => {
     table_name
   )}__history" h ${where.length ? ` ${where}` : ""}`;
   const { rows } = await db.query(sql, values);
-  console.log(rows);
+  //console.log(rows);
   return +rows?.[0]?.count;
 };
 
