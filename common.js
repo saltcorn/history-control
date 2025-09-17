@@ -68,6 +68,7 @@ const updateRow = async (table_name, update_in, version_id) => {
   const sqlParts = [],
     values = [];
   const nkeys = Object.keys(update).length;
+  if (nkeys === 0) return;
   const [version, id] = version_id.split("_");
   Object.entries(update).forEach(([k, v], ix) => {
     sqlParts.push(`"${db.sqlsanitize(k)}"=$${ix + 1}`);
