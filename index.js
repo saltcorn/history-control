@@ -96,5 +96,5 @@ module.exports = {
   sc_plugin_api_version: 1,
   actions: features?.table_undo ? actions : undefined,
   table_providers: require("./table-provider.js"),
-  viewtemplates: [require("./diffview")],
+  viewtemplates: [require("./diffview"), require("./rowdiffview")],
 };
