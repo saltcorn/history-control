@@ -71,6 +71,11 @@ const configuration_workflow = (req) =>
                 },
               },
               {
+                name: "comparison",
+                label: "Side-by-side comparison",
+                type: "Bool",
+              },
+              {
                 name: "min_interval_secs",
                 label: "Minimum interval (s)",
                 type: "Integer",
@@ -91,7 +96,7 @@ const configuration_workflow = (req) =>
 const run = async (
   table_id,
   viewname,
-  { show_view, min_interval_secs, date_format },
+  { show_view, min_interval_secs, date_format, comparison },
   state,
   extraArgs
 ) => {
@@ -169,7 +174,17 @@ const run = async (
             "aria-labelledby": `a${stateHash}head${ix}`,
             "data-bs-parent": `#top${stateHash}`,
           },
-          div({ class: ["accordion-body"] }, html)
+          div(
+            { class: ["accordion-body"] },
+            comparison && ix < rendered.length - 1
+              ? div(
+                  { class: "d-flex align-middle" },
+                  div({ class: "border p-1 m-1" }, rendered[ix + 1]),
+                  i({ class: "m-2 fas fa-arrow-right" }),
+                  div({ class: "border p-1 m-1" }, html)
+                )
+              : html
+          )
         )
       );
     })
