@@ -49,7 +49,23 @@ const configuration_workflow = (req) =>
               state_fields.some((sf) => sf.name === "id")
           );
           const show_view_opts = show_views.map((v) => v.select_option);
+          let blurb;
+          if (table.provider_name)
+            blurb = [
+              div(
+                { class: "alert alert-danger fst-normal" },
+                `Use this view on a standard database table, not a provided table`
+              ),
+            ];
+          else if (!table.versioned)
+            blurb = [
+              div(
+                { class: "alert alert-danger fst-normal" },
+                `Version history is not enabled for this table`
+              ),
+            ];
           return new Form({
+            blurb,
             fields: [
               {
                 name: "show_view",
