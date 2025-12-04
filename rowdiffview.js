@@ -105,11 +105,16 @@ const run = async (
   let hist = await table.get_history(id);
 
   let last = 0;
+  let last_changed_by = undefined;
   hist = hist.filter((row) => {
     const myEpoch = Math.round(new Date(row._time).getTime() / 1000);
-    if (myEpoch - last > min_interval_secs) {
+    if (
+      myEpoch - last > min_interval_secs ||
+      (row._userid && row._userid !== last_changed_by)
+    ) {
       //include
       last = myEpoch;
+      last_changed_by = row._userid;
       return true;
     } else return false;
   });
