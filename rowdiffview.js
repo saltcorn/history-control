@@ -128,7 +128,7 @@ const run = async (
   users.forEach((u) => (emails[u.id] = u.email));
   const view = View.findOne({ name: show_view });
   const rendered = await view.viewtemplateObj.renderRows(
-    view.table,
+    table,
     view.name,
     view.configuration,
     extraArgs,
