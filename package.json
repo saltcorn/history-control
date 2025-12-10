@@ -1,6 +1,6 @@
 {
   "name": "@saltcorn/history-control",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "Allow users to interact with row history",
   "main": "index.js",
   "dependencies": {
