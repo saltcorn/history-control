@@ -23,6 +23,7 @@ const {
   button,
 } = require("@saltcorn/markup/tags");
 const { radio_group, checkbox_group } = require("@saltcorn/markup/helpers");
+const { picked_fields_to_query } = require("@saltcorn/data/plugin-helper");
 const moment = require("moment");
 
 const get_state_fields = () => [
@@ -125,29 +126,55 @@ const run = async (
 
   let hist = await table.get_history(id);
 
+  if (!hist || !hist.length) return "No versions recorded";
+
   let last = 0;
   let last_changed_by = undefined;
-  hist = hist.filter((row) => {
-    const myEpoch = Math.round(new Date(row._time).getTime() / 1000);
-    if (
-      myEpoch - last > min_interval_secs ||
-      (row._userid && row._userid !== last_changed_by)
-    ) {
-      //include
-      last = myEpoch;
-      last_changed_by = row._userid;
-      return true;
-    } else return false;
-  });
 
-  if (!hist || !hist.length) return "No versions recorded";
-  hist = hist.reverse();
+  hist = hist
+    .filter((row) => {
+      const myEpoch = Math.round(new Date(row._time).getTime() / 1000);
+      if (
+        myEpoch - last > min_interval_secs ||
+        (row._userid && row._userid !== last_changed_by)
+      ) {
+        //include
+        last = myEpoch;
+        last_changed_by = row._userid;
+        return true;
+      } else return false;
+    })
+    .reverse();
+  const view = View.findOne({ name: show_view });
+
+  const { joinFields } = picked_fields_to_query(
+    view.configuration.columns,
+    table.fields,
+    view.configurationlayout,
+    extraArgs.req,
+    table
+  );
+  for (const [nm, jf] of Object.entries(joinFields)) {
+    const refVals = new Set(hist.map((r) => r[jf.ref]));
+    const refField = table.getField(jf.ref);
+    const reftable = Table.findOne(refField.reftable_name);
+    const rows = await reftable.getRows({
+      id: { in: [...refVals] },
+    });
+    const rowsByVal = {};
+    rows.forEach((r) => {
+      rowsByVal[r[reftable.pk_name]] = r;
+    });
+
+    hist.forEach((h) => {
+      h[nm] = rowsByVal[h[jf.ref]]?.[jf.target];
+    });
+  }
 
   const userIds = new Set(hist.map((h) => h._userid));
   const users = await User.find({ id: { in: [...userIds] } });
   const emails = {};
   users.forEach((u) => (emails[u.id] = u.email));
-  const view = View.findOne({ name: show_view });
   const rendered = await view.viewtemplateObj.renderRows(
     table,
     view.name,
