@@ -159,7 +159,7 @@ const run = async (
     const refField = table.getField(jf.ref);
     const reftable = Table.findOne(refField.reftable_name);
     const rows = await reftable.getRows({
-      id: { in: [...refVals] },
+      [reftable.pk_name]: { in: [...refVals] },
     });
     const rowsByVal = {};
     rows.forEach((r) => {
