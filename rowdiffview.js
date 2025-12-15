@@ -20,6 +20,7 @@ const {
   select,
   option,
   h2,
+  time,
   button,
 } = require("@saltcorn/markup/tags");
 const { radio_group, checkbox_group } = require("@saltcorn/markup/helpers");
@@ -183,6 +184,7 @@ const run = async (
     hist,
     state
   );
+
   return div(
     {
       class: ["accordion"],
@@ -190,6 +192,21 @@ const run = async (
     },
     rendered.map((html, ix) => {
       const row = hist[ix];
+      let d = row._time;
+      const jsdate = d;
+      const locale = (req) => {
+        //console.log(req && req.getLocale ? req.getLocale() : undefined);
+        return req?.getLocale?.() || "en";
+      };
+      const loc = locale(extraArgs.req);
+      let format = date_format || "YYYY-MM-DD HH:mm";
+      let timeHtml = time(
+        {
+          datetime: new Date(d).toISOString(),
+          "locale-date-format": encodeURIComponent(JSON.stringify(format)),
+        },
+        moment(jsdate).locale(loc).format(format)
+      );
       return div(
         { class: "accordion-item" },
         h2(
@@ -203,10 +220,8 @@ const run = async (
               "aria-expanded": "false",
               "aria-controls": `a${stateHash}tab${ix}`,
             },
-            date_format
-              ? moment(row._time).format(date_format)
-              : row._time.toString(),
-            " - ",
+            timeHtml,
+            "&nbsp;- ",
             emails[row._userid]
           )
         ),
