@@ -66,7 +66,7 @@ module.exports = {
         { name: "_is_latest", label: "Is latest", type: "Bool" },
         { name: "_deleted", label: "Deleted", type: "Bool" },
         { name: "_time", label: "Time", type: "Date" },
-        { name: "_userid", label: "User ID", type: "Integer" },
+        { name: "_userid", label: "User ID", type: "Key to users" },
         {
           name: "_restore_of_version",
           label: "Restore of version",
@@ -96,6 +96,11 @@ module.exports = {
         getRows: async (where, opts) => {
           const table = Table.findOne({ name: cfg.table });
           const qres = await runQuery(table, where, opts);
+          return qres.rows;
+        },
+        getJoinedRows: async (opts) => {
+          const table = Table.findOne({ name: cfg.table });
+          const qres = await runQuery(table, opts?.where || {}, opts);
           return qres.rows;
         },
       };

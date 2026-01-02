@@ -40,17 +40,31 @@ const get_where_vals = (table_name, whereFull) => {
 const runQuery = async (table, whereFull, opts) => {
   const schemaPrefix = db.getTenantSchemaPrefix();
   const { where, values } = get_where_vals(table.name, whereFull);
-  const sql = `select 
- _version || '_'|| id as _version_id, 
+  let joinTs = [],
+    joinF = [];
+  // console.log(table.fields);
+
+  Object.entries(opts?.joinFields || {}).forEach(([nm, { ref, target }]) => {
+    const keyField = table.getField(ref);
+    const reftable_name = `${schemaPrefix}"${
+      ref === "_userid" ? "users" : db.sqlsanitize(keyField.reftable_name)
+    }"`;
+    joinF.push(`${reftable_name}."${target}" as "${nm}"`);
+    joinTs.push(`${reftable_name} on h."${ref}" = ${reftable_name}."id"`);
+  });
+  const sql = `select
+ _version || '_'|| h.id as _version_id,
  _version = (select max(ih._version) from ${schemaPrefix}"${db.sqlsanitize(
     table.name
   )}__history" ih where ih.id = h.id) as _is_latest,
  not exists(select id from ${schemaPrefix}"${db.sqlsanitize(
     table.name
-  )}" t where t.id = h.id) as _deleted, 
- * from ${schemaPrefix}"${db.sqlsanitize(table.name)}__history" h ${
-    where.length ? ` ${where}` : ""
-  }${
+  )}" t where t.id = h.id) as _deleted,
+ *${
+   joinF.length ? `, ${joinF.join()}` : ``
+ } from ${schemaPrefix}"${db.sqlsanitize(table.name)}__history" h ${
+    joinTs.length ? ` JOIN ${joinTs.join(" JOIN ")}` : ``
+  } ${where.length ? ` ${where}` : ""}${
     opts.orderBy && opts.orderBy !== "_version_id"
       ? ` order by "${db.sqlsanitize(opts.orderBy)}"${
           opts.orderDesc ? " DESC" : ""
