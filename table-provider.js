@@ -48,6 +48,11 @@ module.exports = {
       if (!cfg?.table) return [];
 
       const table = Table.findOne({ name: cfg.table });
+      if (!table)
+        throw new Error(
+          `Error in History provided table: underlying table "${cfg.table}" not found`
+        );
+
       return [
         {
           name: "_version_id",
