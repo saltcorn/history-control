@@ -9,8 +9,14 @@
     "htmldiff-js": "1.0.5",
     "moment": "^2.29.4"
   },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
   "author": "Tom Nielsen",
   "license": "MIT",
+  "scripts": {
+    "test": "jest tests --runInBand"
+  },
   "repository": "github:saltcorn/history-control",
   "eslintConfig": {
     "extends": "eslint:recommended",
