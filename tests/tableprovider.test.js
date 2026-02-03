@@ -1,5 +1,6 @@
 const { getState } = require("@saltcorn/data/db/state");
 const View = require("@saltcorn/data/models/view");
+const User = require("@saltcorn/data/models/user");
 const Table = require("@saltcorn/data/models/table");
 const Field = require("@saltcorn/data/models/field");
 const { mockReqRes } = require("@saltcorn/data/tests/mocks");
@@ -24,13 +25,22 @@ beforeAll(async () => {
 describe("History table provider", () => {
   it("activate version history for books", async () => {
     const table = Table.findOne({ name: "books" });
-
+    const user = await User.findOne({ role_id: 80 });
+    const admin = await User.findOne({ role_id: 1 });
+    table.min_role_write = 80;
+    table.min_role_read = 80;
     table.versioned = true;
     await table.update(table);
-    const mid = await table.insertRow({ author: "Moore", pages: 257 });
-    const aid = await table.insertRow({ author: "Apostol", pages: 411 });
-    await table.updateRow({ pages: 258 }, mid);
-    await table.updateRow({ pages: 431 }, aid);
+    const mid = await table.insertRow(
+      { author: "Moore", pages: 257, publisher: 1 },
+      user,
+    );
+    const aid = await table.insertRow(
+      { author: "Apostol", pages: 411, publisher: 2 },
+      admin,
+    );
+    await table.updateRow({ pages: 258 }, mid, user);
+    await table.updateRow({ pages: 431 }, aid, admin);
     const histRows = await table.get_history();
     expect(histRows.length).toBe(4);
   });
@@ -44,5 +54,41 @@ describe("History table provider", () => {
     });
     const nrows = await histbooks.countRows({});
     expect(nrows).toBe(4);
+    const allrows = await histbooks.getRows({});
+    expect(allrows.length).toBe(4);
+    const user = await User.findOne({ role_id: 80 });
+
+    const usersrows = await histbooks.getRows({}, { forUser: user });
+    expect(usersrows.length).toBe(2);
+  });
+  it("get joined rows", async () => {
+    const histbooks = Table.findOne("HistBooks");
+
+    const allrows = await histbooks.getJoinedRows({
+      where: { author: "Apostol" },
+      joinFields: {
+        publisher_name: {
+          target: "name",
+          ref: "publisher",
+        },
+      },
+    });
+    expect(allrows.length).toBe(2);
+    expect(allrows[0].publisher_name).toBe("No starch");
+    const user = await User.findOne({ role_id: 80 });
+
+    const usersrows = await histbooks.getJoinedRows({
+      where: {},
+      joinFields: {
+        publisher_name: {
+          target: "name",
+          ref: "publisher",
+        },
+      },
+      forUser: user,
+    });
+    expect(usersrows.length).toBe(2);
+    expect(usersrows[0].publisher_name).toBe("AK Press");
+
   });
 });
